@@ -3,7 +3,7 @@ from curses import wrapper
 stdscr = curses.initscr()
 import time
 import sprites
-import random
+#import random
 
 
 FRAMERATE = 30
@@ -86,12 +86,40 @@ class Curse(Collidable):
     def sprite(self):
         return self.curse
 
+    def draw(self, stdscr):
+        if self.is_killed:
+            pass
+
+        # we know that with the curse. there's only two lines.
+        split_sprite = [line for line in self.sprite().split('\n') if line]
+
+        line_0 = split_sprite[0]
+        line_1 = split_sprite[1]
+
+        # choose color based on percent damage...
+        num_asterisks = len([char for char in self.base_word if char != '*'])
+        damage = num_asterisks / float(len(self.base_word))
+        color = curses.color_pair(1)
+        if damage < 0.66:
+            color = curses.color_pair(2)
+        if damage < 0.33:
+            color = curses.color_pair(3)
+
+        stdscr.addstr(self.y, self.x, line_0, color)
+        stdscr.addstr(self.y + 1, self.x, line_1, curses.color_pair(4))
+
+        # re-draw the first/last character of line_0
+        stdscr.addstr(self.y, self.x, line_0[0], curses.color_pair(4))
+        stdscr.addstr(self.y, self.x + len(line_0) -1, line_0[-1], curses.color_pair(4))
+
     def register_damage(self):
         remaining_indices = [index for index, character in enumerate(self.base_word) if character is not '*']
         if not remaining_indices:
             self.kill()
         else:
-            choice = random.choice(remaining_indices)
+            # random looks kind of shitty
+            #choice = random.choice(remaining_indices)
+            choice = remaining_indices[0]
             self.base_word = self.base_word[:choice] + '*' + self.base_word[choice + 1:]
             self.curse = self._cursify(self.base_word)
 
@@ -115,18 +143,27 @@ class ShipBullet(Bullet):
 def log(message):
     stdscr.addstr(0, 0, message)
 
+def init_colors():
+    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+    curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+
 def game(stdscr):
     stdscr.nodelay(1)
     curses.curs_set(0)
+    curses.start_color()
+    init_colors()
+
     # TODO get the window size
     ship = Ship(30,50)
     drawable_elements = []
     drawable_elements.append(ship)
     drawable_elements.append(Curse("mothertrucker", 4, 20))
     drawable_elements.append(Curse("crap", 6, 10))
-    drawable_elements.append(Curse("damn", 18, 24))
-    drawable_elements.append(Curse("butts", 14, 28))
-    drawable_elements.append(Curse("dillhole", 3, 30))
+    drawable_elements.append(Curse("damn", 10, 24))
+    drawable_elements.append(Curse("butts", 7, 28))
+    drawable_elements.append(Curse("dillhole", 3, 5))
 
     while True:
         stdscr.clear()
