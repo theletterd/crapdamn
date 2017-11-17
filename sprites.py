@@ -1,6 +1,7 @@
 ship = r"""
- |
-/o\
+   |
+__/o\__
 """
 
-bullet = r"."
+ship_bullet_1 = r"."
+ship_bullet_2 = r"o"
