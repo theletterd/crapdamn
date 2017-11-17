@@ -10,8 +10,20 @@ FRAMERATE = 30
 SLEEPTIME = 1.0 / FRAMERATE
 SHIP_SPEED = 3
 
+curses.curs_set(0)
+curses.start_color()
+curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+curses.init_pair(5, curses.COLOR_BLUE, curses.COLOR_BLACK)
+curses.init_pair(6, curses.COLOR_CYAN, curses.COLOR_BLACK)
+curses.init_pair(7, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+
 class Drawable(object):
     is_killed = False
+    base_color = curses.color_pair(7)
 
     def __init__(self, y, x):
         self._y = y
@@ -35,7 +47,7 @@ class Drawable(object):
         split_sprite = [line for line in self.sprite().split('\n') if line]
         # we might need to define a valid box at some point
         for index, line in enumerate(split_sprite):
-            stdscr.addstr(self.y + index, self.x, line)
+            stdscr.addstr(self.y + index, self.x, line, self.base_color)
 
     def is_live(self):
         return not self.is_killed
@@ -186,6 +198,7 @@ class ShipBullet(Bullet):
         sprites.ship_bullet_1,
         sprites.ship_bullet_2,
     ]
+    base_color = curses.color_pair(5)
 
     def is_live(self):
         # check to see if we fly off the top of the screen, then remove
@@ -193,7 +206,11 @@ class ShipBullet(Bullet):
 
 class CurseBullet(Bullet):
 
-    frames = ['*','@']
+    frames = [
+        sprites.curse_bullet_1,
+        sprites.curse_bullet_2
+    ]
+    base_color = curses.color_pair(6)
 
     def tick(self):
         self._y += 0.2
@@ -202,32 +219,14 @@ class CurseBullet(Bullet):
         # check to see if we fly off the bottom of the screen, then remove
         return self.y <= 40 and (not self.is_killed)
 
-    def draw(self, stdscr):
-        if self.is_killed:
-            pass
-        split_sprite = [line for line in self.sprite().split('\n') if line]
-        # we might need to define a valid box at some point
-        for index, line in enumerate(split_sprite):
-            stdscr.addstr(self.y + index, self.x, line, curses.color_pair(6))
-
 
 
 def log(message):
     stdscr.addstr(0, 0, message)
 
-def init_colors():
-    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
-    curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-    curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-    curses.init_pair(5, curses.COLOR_BLUE, curses.COLOR_WHITE)
-    curses.init_pair(6, curses.COLOR_CYAN, curses.COLOR_BLACK)
 
 def game(stdscr):
     stdscr.nodelay(1)
-    curses.curs_set(0)
-    curses.start_color()
-    init_colors()
 
     # TODO get the window size
     ship = Ship(40,25)
@@ -258,8 +257,14 @@ def game(stdscr):
         log(str(len(drawable_elements)))
         for bullet in bullets:
             if (bullet.y, bullet.x) in collidable_map:
-                collidable_map[(bullet.y, bullet.x)].register_damage()
-                bullet.kill()
+                collidable = collidable_map[(bullet.y, bullet.x)]
+
+                # verify which bullets can damage which things
+                if (((type(bullet) is ShipBullet) and (type(collidable) is Curse)) or
+                    ((type(bullet) is CurseBullet) and (type(collidable) is Ship))):
+
+                    collidable_map[(bullet.y, bullet.x)].register_damage()
+                    bullet.kill()
 
         # go through and draw all elements
         for element in drawable_elements:
