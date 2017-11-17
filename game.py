@@ -78,25 +78,87 @@ class Collidable(Drawable):
 
 class Ship(Collidable):
 
+
+
+    happy_color = curses.color_pair(7)
+    damage_color = curses.color_pair(3)
+    base_color = happy_color
+
+    color_ticks = 3
+    remaining_color_ticks = 0
+
+    move_keys = set([
+        curses.KEY_LEFT,
+        curses.KEY_RIGHT,
+        curses.KEY_UP,
+        curses.KEY_DOWN,
+    ])
     health = 10
+    current_sprite = sprites.ship
+    dwell_ticks = 4
+    remaining_dwell = 0
 
     def sprite(self):
-        return sprites.ship
+        return self.current_sprite
 
     def constrain(self):
         if self.x < 0:
-            self.x = 0
+            self._x = 0
 
         if self.y < 0:
-            self.y = 0
+            self._y = 0
 
     def nose_coords(self):
-        return (self.y - 1, self.x + 3)
+        nose_index = len(self.sprite().split('\n')[1])
+        return (self.y - 1, self.x + nose_index - 1)
 
     def register_damage(self):
         self.health -= 1
+        self.base_color = self.damage_color
         if self.health < 0:
             self.kill()
+
+    def tick(self):
+        if self.remaining_dwell > 0:
+            self.remaining_dwell -= 1
+        else:
+            self.current_sprite = sprites.ship
+
+        if self.remaining_color_ticks > 0:
+            self.remaining_color_ticks -= 1
+        else:
+            self.base_color = self.happy_color
+
+
+    def draw(self, stdscr):
+        if self.is_killed:
+            pass
+
+        split_sprite = [line for line in self.sprite().split('\n') if line]
+        # we might need to define a valid box at some point
+        for index, line in enumerate(split_sprite):
+            stdscr.addstr(self.y + index, self.x, line, self.base_color)
+
+        # jk, let's overwrite that last line in blue
+        stdscr.addstr(self.y + index, self.x, line, curses.color_pair(5))
+
+
+    def move(self, key):
+        if key == curses.KEY_LEFT:
+            self._x -= SHIP_SPEED
+            self.current_sprite = sprites.ship_moving_left
+        elif key == curses.KEY_RIGHT:
+            self._x +=  SHIP_SPEED
+            self.current_sprite = sprites.ship_moving_right
+        elif key == curses.KEY_UP:
+            self._y -= 1
+            self.current_sprite = sprites.ship_moving_up
+        elif key == curses.KEY_DOWN:
+            self._y += 1
+            self.current_sprite = sprites.ship_moving_down
+
+        if key in self.move_keys:
+            self.remaining_dwell = self.dwell_ticks
 
 
 class Curse(Collidable):
@@ -268,22 +330,17 @@ def game(stdscr):
 
         # go through and draw all elements
         for element in drawable_elements:
-            element.draw(stdscr)
             if type(element) is Ship:
                 ship.constrain()
+            element.draw(stdscr)
 
             element.tick()
 
         stdscr.refresh()
         key = stdscr.getch()
-        if key == curses.KEY_LEFT:
-            ship._x -= SHIP_SPEED
-        elif key == curses.KEY_RIGHT:
-            ship._x +=  SHIP_SPEED
-        elif key == curses.KEY_UP:
-            ship._y -= 1
-        elif key == curses.KEY_DOWN:
-            ship._y += 1
+
+        if key in ship.move_keys:
+            ship.move(key)
         elif key == ord(' '):
             drawable_elements.append(ShipBullet(*ship.nose_coords()))
 
