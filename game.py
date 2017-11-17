@@ -3,7 +3,7 @@ from curses import wrapper
 stdscr = curses.initscr()
 import time
 import sprites
-#import random
+import random
 
 
 FRAMERATE = 30
@@ -13,8 +13,16 @@ class Drawable(object):
     is_killed = False
 
     def __init__(self, y, x):
-        self.y = y
-        self.x = x
+        self._y = y
+        self._x = x
+
+    @property
+    def x(self):
+        return int(self._x)
+
+    @property
+    def y(self):
+        return int(self._y)
 
     def sprite(self):
         return "NaS"
@@ -76,12 +84,28 @@ class Curse(Collidable):
     def __init__(self, curse, y, x):
         self.base_word = curse.upper()
         self.curse = self._cursify(self.base_word)
+        self.direction = random.choice(['L', 'R'])
+        self.speed = random.choice([1, 0.75, 0.6, 0.5, 0.33, 0.2, 0.1])
         super(Curse, self).__init__(y, x)
 
     def _cursify(self, word):
         top_line = "| " + word + " |"
         bottom_line = "\{}/".format(('-' * (len(word) + 2)))
         return top_line + '\n' + bottom_line
+
+    def tick(self):
+        if self.direction == 'L':
+            self._x -= self.speed
+        elif self.direction == 'R':
+            self._x += self.speed
+
+        if self.x < 0:
+            self._x = 0
+            self.direction = 'R'
+
+        if self.x >= 60:
+            self._x = 60
+            self.direction = 'L'
 
     def sprite(self):
         return self.curse
@@ -105,12 +129,12 @@ class Curse(Collidable):
         if damage < 0.33:
             color = curses.color_pair(3)
 
-        stdscr.addstr(self.y, self.x, line_0, color)
-        stdscr.addstr(self.y + 1, self.x, line_1, curses.color_pair(4))
+        stdscr.addstr(int(self.y), int(self.x), line_0, color)
+        stdscr.addstr(int(self.y) + 1, int(self.x), line_1, curses.color_pair(4))
 
         # re-draw the first/last character of line_0
-        stdscr.addstr(self.y, self.x, line_0[0], curses.color_pair(4))
-        stdscr.addstr(self.y, self.x + len(line_0) -1, line_0[-1], curses.color_pair(4))
+        stdscr.addstr(int(self.y), int(self.x), line_0[0], curses.color_pair(4))
+        stdscr.addstr(int(self.y), int(self.x) + len(line_0) -1, line_0[-1], curses.color_pair(4))
 
     def register_damage(self):
         remaining_indices = [index for index, character in enumerate(self.base_word) if character is not '*']
@@ -129,7 +153,7 @@ class Bullet(Drawable):
         return '*'
 
     def tick(self):
-        self.y -= 1
+        self._y -= 1
 
     def is_live(self):
         # check to see if we fly off the top of the screen, then remove
@@ -156,14 +180,18 @@ def game(stdscr):
     init_colors()
 
     # TODO get the window size
-    ship = Ship(30,50)
+    ship = Ship(30,25)
     drawable_elements = []
     drawable_elements.append(ship)
-    drawable_elements.append(Curse("mothertrucker", 4, 20))
-    drawable_elements.append(Curse("crap", 6, 10))
-    drawable_elements.append(Curse("damn", 10, 24))
-    drawable_elements.append(Curse("butts", 7, 28))
     drawable_elements.append(Curse("dillhole", 3, 5))
+    drawable_elements.append(Curse("mothertrucker", 6, 20))
+    drawable_elements.append(Curse("crap", 9, 10))
+    drawable_elements.append(Curse("butts", 12, 28))
+    drawable_elements.append(Curse("nuts", 15, 24))
+    drawable_elements.append(Curse("juicebox", 18, 3))
+    drawable_elements.append(Curse("baghandler", 21, 15))
+    drawable_elements.append(Curse("donkey", 24, 24))
+
 
     while True:
         stdscr.clear()
@@ -196,13 +224,13 @@ def game(stdscr):
         stdscr.refresh()
         key = stdscr.getch()
         if key == curses.KEY_LEFT:
-            ship.x -=1
+            ship._x -=1
         elif key == curses.KEY_RIGHT:
-            ship.x +=1
+            ship._x +=1
         elif key == curses.KEY_UP:
-            ship.y -=1
+            ship._y -=1
         elif key == curses.KEY_DOWN:
-            ship.y +=1
+            ship._y +=1
         elif key == ord(' '):
             drawable_elements.append(ShipBullet(*ship.nose_coords()))
 
