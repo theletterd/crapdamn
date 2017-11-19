@@ -1,6 +1,9 @@
 import curses
+import constants
 stdscr = curses.initscr()
+stdscr.nodelay(1)
 curses.start_color()
+stdscr.clear()
 
 
 from curses import wrapper
@@ -16,16 +19,14 @@ from drawables import Collidable
 from drawables import Curse
 from drawables import Ship
 
-FRAMERATE = 30
-SLEEPTIME = 1.0 / FRAMERATE
-
 
 def log(message):
     stdscr.addstr(0, 0, message)
 
 
 def game(stdscr):
-    stdscr.nodelay(1)
+    game_window = curses.newwin(constants.HEIGHT, constants.WIDTH, 0, 0)
+    game_window.nodelay(1)
 
     # TODO get the window size
     ship = Ship(40,25)
@@ -41,7 +42,8 @@ def game(stdscr):
     drawable_elements.append(Curse("donkey", 24, 24))
 
     while True:
-        stdscr.clear()
+        game_window.clear()
+        game_window.border()
         drawable_elements = [element for element in drawable_elements if element.is_live()]
 
         # define collision map
@@ -53,7 +55,6 @@ def game(stdscr):
 
         # check for collision
         bullets = [element for element in drawable_elements if isinstance(element, Bullet)]
-        log(str(len(drawable_elements)))
         for bullet in bullets:
             if (bullet.y, bullet.x) in collidable_map:
                 collidable = collidable_map[(bullet.y, bullet.x)]
@@ -67,13 +68,10 @@ def game(stdscr):
 
         # go through and draw all elements
         for element in drawable_elements:
-            if type(element) is Ship:
-                ship.constrain()
-            element.draw(stdscr)
-
+            element.draw(game_window)
             element.tick()
 
-        stdscr.refresh()
+        game_window.refresh()
         key = stdscr.getch()
 
         if key in ship.move_keys:
@@ -86,6 +84,6 @@ def game(stdscr):
             if random.random() < 0.01:
                 drawable_elements.append(CurseBullet(*curse.get_gun_coords()))
 
-        time.sleep(SLEEPTIME)
+        time.sleep(constants.SLEEPTIME)
 
 wrapper(game)

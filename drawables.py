@@ -2,8 +2,8 @@ import sprites
 import curses
 import random
 import colors
+import constants
 
-SHIP_SPEED = 3
 
 class Drawable(object):
     is_killed = False
@@ -20,6 +20,14 @@ class Drawable(object):
     @property
     def y(self):
         return int(self._y)
+
+    @property
+    def width(self):
+        return max(len(line) for line in self.sprite().split())
+
+    @property
+    def height(self):
+        return len([line for line in self.sprite().split('\n') if line])
 
     def sprite(self):
         return "NaS"
@@ -81,15 +89,27 @@ class Ship(Collidable):
     dwell_ticks = 4
     remaining_dwell = 0
 
+    @property
+    def height(self):
+        # +2 for the health bar
+        return super(Ship, self).height + 2
+
     def sprite(self):
         return self.current_sprite
 
     def constrain(self):
-        if self.x < 0:
-            self._x = 0
+        if self.x < 1:
+            self._x = 1
 
-        if self.y < 0:
-            self._y = 0
+        if self.x + self.width >= constants.WIDTH - 1:
+            self._x = constants.WIDTH - self.width - 1
+
+        if self.y < 1:
+            self._y = 1
+
+        if self.y + self.height >= constants.HEIGHT - 1:
+            self._y = constants.HEIGHT - self.height - 1
+
 
     def nose_coords(self):
         nose_index = len(self.sprite().split('\n')[1])
@@ -112,6 +132,8 @@ class Ship(Collidable):
         else:
             self.base_color = self.happy_color
 
+        # also constrain here
+        self.constrain()
 
     def draw(self, stdscr):
         if self.is_killed:
@@ -129,7 +151,7 @@ class Ship(Collidable):
             ship_color |= curses.A_DIM
 
         split_sprite = [line for line in self.sprite().split('\n') if line]
-        # we might need to define a valid box at some point
+
         for index, line in enumerate(split_sprite):
             stdscr.addstr(self.y + index, self.x, line, ship_color)
 
@@ -150,10 +172,10 @@ class Ship(Collidable):
 
     def move(self, key):
         if key == curses.KEY_LEFT:
-            self._x -= SHIP_SPEED
+            self._x -= constants.SHIP_SPEED
             self.current_sprite = sprites.ship_moving_left
         elif key == curses.KEY_RIGHT:
-            self._x +=  SHIP_SPEED
+            self._x +=  constants.SHIP_SPEED
             self.current_sprite = sprites.ship_moving_right
         elif key == curses.KEY_UP:
             self._y -= 1
@@ -165,6 +187,7 @@ class Ship(Collidable):
         if key in self.move_keys:
             self.remaining_dwell = self.dwell_ticks
 
+        self.constrain()
 
 class Curse(Collidable):
 
@@ -186,12 +209,12 @@ class Curse(Collidable):
         elif self.direction == 'R':
             self._x += self.speed
 
-        if self.x < 0:
-            self._x = 0
+        if self.x < 1:
+            self._x = 1
             self.direction = 'R'
 
-        if self.x >= 60:
-            self._x = 60
+        if self.x + self.width  >= constants.WIDTH - 1:
+            self._x = constants.WIDTH - self.width - 1
             self.direction = 'L'
 
     def sprite(self):
@@ -270,7 +293,7 @@ class ShipBullet(Bullet):
 
     def is_live(self):
         # check to see if we fly off the top of the screen, then remove
-        return self.y >= 0 and (not self.is_killed)
+        return self.y >= 1 and (not self.is_killed)
 
 class CurseBullet(Bullet):
 
@@ -285,4 +308,4 @@ class CurseBullet(Bullet):
 
     def is_live(self):
         # check to see if we fly off the bottom of the screen, then remove
-        return self.y <= 40 and (not self.is_killed)
+        return self.y <= (constants.HEIGHT - 2) and (not self.is_killed)
