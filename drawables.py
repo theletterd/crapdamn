@@ -89,6 +89,9 @@ class Ship(Collidable):
     dwell_ticks = 4
     remaining_dwell = 0
 
+    max_bullets = 5
+    bullets = max_bullets
+
     @property
     def height(self):
         # +2 for the health bar
@@ -135,6 +138,10 @@ class Ship(Collidable):
         # also constrain here
         self.constrain()
 
+        self.bullets += constants.BULLET_REFRESH
+        if self.bullets > self.max_bullets:
+            self.bullets = self.max_bullets
+
     def draw(self, stdscr):
         if self.is_killed:
             pass
@@ -159,8 +166,12 @@ class Ship(Collidable):
         stdscr.addstr(self.y + len(split_sprite) -1, self.x, split_sprite[-1], colors.BLUE)
 
 
-        # let's also add a health-meter
-        health_meter_length = max(len(line) for line in split_sprite)
+        # let's also add a gun meter
+        gun_meter = "." * int((self.width * (self.bullets / float(self.max_bullets))))
+        stdscr.addstr(self.y + len(split_sprite), self.x, gun_meter, colors.RED | curses.A_BOLD)
+
+        # and a health-meter
+        health_meter_length = self.width # max(len(line) for line in split_sprite)
         health_string_length = health_meter_length - 2
         num_health_characters = int(((self.current_health) / float(self.start_health)) * health_string_length)
 
@@ -188,6 +199,11 @@ class Ship(Collidable):
             self.remaining_dwell = self.dwell_ticks
 
         self.constrain()
+
+    def fire(self):
+        if self.bullets >= 1:
+            self.bullets -= 1
+            return ShipBullet(*self.nose_coords())
 
 class Curse(Collidable):
 
@@ -289,7 +305,7 @@ class ShipBullet(Bullet):
         sprites.ship_bullet_1,
         sprites.ship_bullet_2,
     ]
-    base_color = colors.BLUE
+    base_color = colors.RED | curses.A_BOLD
 
     def is_live(self):
         # check to see if we fly off the top of the screen, then remove

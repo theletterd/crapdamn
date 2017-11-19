@@ -77,7 +77,9 @@ def game(stdscr):
         if key in ship.move_keys:
             ship.move(key)
         elif key == ord(' '):
-            drawable_elements.append(ShipBullet(*ship.nose_coords()))
+            bullet = ship.fire()
+            if bullet:
+                drawable_elements.append(bullet)
 
         curseships = [element for element in drawable_elements if type(element) == Curse]
         for curse in curseships:
