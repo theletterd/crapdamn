@@ -75,7 +75,8 @@ class Ship(Collidable):
         curses.KEY_UP,
         curses.KEY_DOWN,
     ])
-    health = 10
+    start_health = 10
+    current_health = start_health
     current_sprite = sprites.ship
     dwell_ticks = 4
     remaining_dwell = 0
@@ -95,9 +96,9 @@ class Ship(Collidable):
         return (self.y - 1, self.x + nose_index - 1)
 
     def register_damage(self):
-        self.health -= 1
+        self.current_health -= 1
         self.base_color = self.damage_color
-        if self.health < 0:
+        if self.current_health < 0:
             self.kill()
 
     def tick(self):
@@ -116,13 +117,35 @@ class Ship(Collidable):
         if self.is_killed:
             pass
 
+        health_fraction = self.current_health / float(self.start_health)
+        ship_color = self.base_color
+
+        if health_fraction >= 0.75:
+            health_color = colors.GREEN
+        if health_fraction < 0.75:
+            health_color = colors.YELLOW
+        if health_fraction < 0.3:
+            health_color = colors.RED
+            ship_color |= curses.A_DIM
+
         split_sprite = [line for line in self.sprite().split('\n') if line]
         # we might need to define a valid box at some point
         for index, line in enumerate(split_sprite):
-            stdscr.addstr(self.y + index, self.x, line, self.base_color)
+            stdscr.addstr(self.y + index, self.x, line, ship_color)
 
         # jk, let's overwrite that last line in blue
-        stdscr.addstr(self.y + index, self.x, line, colors.BLUE)
+        stdscr.addstr(self.y + len(split_sprite) -1, self.x, split_sprite[-1], colors.BLUE)
+
+
+        # let's also add a health-meter
+        health_meter_length = max(len(line) for line in split_sprite)
+        health_string_length = health_meter_length - 2
+        num_health_characters = int(((self.current_health) / float(self.start_health)) * health_string_length)
+
+        health_string = ('-' * num_health_characters) + (' ' * (health_string_length - num_health_characters))
+
+        stdscr.addstr(self.y + len(split_sprite) + 1, self.x, '<' + (' ' * len(health_string)) + '>', health_color)
+        stdscr.addstr(self.y + len(split_sprite) + 1, self.x + 1, health_string, health_color | curses.A_DIM)
 
 
     def move(self, key):
