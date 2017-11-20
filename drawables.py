@@ -50,6 +50,20 @@ class Drawable(object):
     def kill(self):
         self.is_killed = True
 
+class BackgroundStar(Drawable):
+
+    base_color = colors.WHITE | curses.A_DIM
+
+    def sprite(self):
+        return '.'
+
+    def tick(self):
+        self._y += constants.STAR_SPEED
+        if self.y > constants.HEIGHT - 2:
+            # let's not kill stars - let's just put them back at the top
+            self._y = 1
+
+
 
 class Collidable(Drawable):
     def health():
@@ -317,7 +331,7 @@ class CurseBullet(Bullet):
         sprites.curse_bullet_1,
         sprites.curse_bullet_2
     ]
-    base_color = colors.CYAN
+    base_color = colors.CYAN | curses.A_BOLD
 
     def tick(self):
         self._y += 0.2

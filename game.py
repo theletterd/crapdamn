@@ -1,5 +1,6 @@
 import curses
 import constants
+
 stdscr = curses.initscr()
 stdscr.nodelay(1)
 curses.start_color()
@@ -12,6 +13,7 @@ import random
 
 
 
+from drawables import BackgroundStar
 from drawables import CurseBullet
 from drawables import ShipBullet
 from drawables import Bullet
@@ -29,7 +31,7 @@ def game(stdscr):
     game_window.nodelay(1)
 
     # TODO get the window size
-    ship = Ship(40,25)
+    ship = Ship(constants.HEIGHT - 10, constants.WIDTH / 2)
     drawable_elements = []
     drawable_elements.append(ship)
     drawable_elements.append(Curse("dillhole", 3, 5))
@@ -41,9 +43,19 @@ def game(stdscr):
     drawable_elements.append(Curse("baghandler", 21, 15))
     drawable_elements.append(Curse("donkey", 24, 24))
 
+    background_elements = []
+    for y in xrange(1, constants.HEIGHT - 2):
+        for x in xrange(1, constants.WIDTH - 2):
+            if random.random() <= constants.STAR_CHANCE:
+                background_elements.append(BackgroundStar(y, x))
+
     while True:
         game_window.clear()
         game_window.border()
+        for element in background_elements:
+            element.draw(game_window)
+            element.tick()
+
         drawable_elements = [element for element in drawable_elements if element.is_live()]
 
         # define collision map
@@ -78,6 +90,7 @@ def game(stdscr):
             ship.move(key)
         elif key == ord(' '):
             bullet = ship.fire()
+
             if bullet:
                 drawable_elements.append(bullet)
 
