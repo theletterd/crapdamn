@@ -88,6 +88,7 @@ def game(stdscr):
 
         if key in ship.move_keys:
             ship.move(key)
+
         elif key == ord(' '):
             bullet = ship.fire()
 

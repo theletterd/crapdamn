@@ -52,16 +52,35 @@ class Drawable(object):
 
 class BackgroundStar(Drawable):
 
-    base_color = colors.WHITE | curses.A_DIM
+    base_color = colors.WHITE
+
+
+    def __init__(self, y, x):
+        self._y = y
+        self._x = x
+        self.speed = random.choice([
+            constants.STAR_SPEED_SLOW,
+            constants.STAR_SPEED_FAST
+        ])
+
+        if self.speed == constants.STAR_SPEED_SLOW:
+            self.base_color |= curses.A_DIM
 
     def sprite(self):
         return '.'
 
     def tick(self):
-        self._y += constants.STAR_SPEED
+        self._y += self.speed
         if self.y > constants.HEIGHT - 2:
             # let's not kill stars - let's just put them back at the top
             self._y = 1
+
+    def ship_moved(self, direction):
+
+        if self.speed == constants.STAR_SPEED_SLOW:
+            direction_speed = 0.2
+        else:
+            direction_speed = 0.6
 
 
 
@@ -214,6 +233,7 @@ class Ship(Collidable):
 
         self.constrain()
 
+
     def fire(self):
         if self.bullets >= 1:
             self.bullets -= 1
@@ -225,7 +245,7 @@ class Curse(Collidable):
         self.base_word = curse.upper()
         self.curse = self._cursify(self.base_word)
         self.direction = random.choice(['L', 'R'])
-        self.speed = random.choice([1, 0.75, 0.6, 0.5, 0.33, 0.2, 0.1])
+        self.speed = 0.5 # random.choice([1, 0.75, 0.6, 0.5, 0.33, 0.2, 0.1])
         super(Curse, self).__init__(y, x)
 
     def _cursify(self, word):
@@ -242,10 +262,14 @@ class Curse(Collidable):
         if self.x < 1:
             self._x = 1
             self.direction = 'R'
+            self._y += 1
+            self.speed += 0.05
 
         if self.x + self.width  >= constants.WIDTH - 1:
             self._x = constants.WIDTH - self.width - 1
             self.direction = 'L'
+            self._y += 1
+            self.speed += 0.05
 
     def sprite(self):
         return self.curse
