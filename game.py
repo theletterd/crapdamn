@@ -20,6 +20,9 @@ from drawables import Bullet
 from drawables import Collidable
 from drawables import Curse
 from drawables import Ship
+from drawables import StatusBar
+
+from state import GameState
 
 
 def log(message):
@@ -30,18 +33,22 @@ def game(stdscr):
     game_window = curses.newwin(constants.HEIGHT, constants.WIDTH, 0, 0)
     game_window.nodelay(1)
 
+
+    game_state = GameState()
+
     # TODO get the window size
     ship = Ship(constants.HEIGHT - 10, constants.WIDTH / 2)
     drawable_elements = []
+    drawable_elements.append(StatusBar(game_state))
     drawable_elements.append(ship)
     drawable_elements.append(Curse("dillhole", 3, 5))
     drawable_elements.append(Curse("mothertrucker", 6, 20))
     drawable_elements.append(Curse("crap", 9, 10))
     drawable_elements.append(Curse("butts", 12, 28))
     drawable_elements.append(Curse("nuts", 15, 24))
-    drawable_elements.append(Curse("juicebox", 18, 3))
-    drawable_elements.append(Curse("baghandler", 21, 15))
-    drawable_elements.append(Curse("donkey", 24, 24))
+    #drawable_elements.append(Curse("juicebox", 18, 3))
+    #drawable_elements.append(Curse("baghandler", 21, 15))
+    #drawable_elements.append(Curse("donkey", 24, 24))
 
     background_elements = []
     for y in xrange(1, constants.HEIGHT - 2):
@@ -75,7 +82,12 @@ def game(stdscr):
                 if (((type(bullet) is ShipBullet) and (type(collidable) is Curse)) or
                     ((type(bullet) is CurseBullet) and (type(collidable) is Ship))):
 
-                    collidable_map[(bullet.y, bullet.x)].register_damage()
+                    damagable = collidable_map[(bullet.y, bullet.x)]
+                    damagable.register_damage()
+
+                    if isinstance(damagable, Curse):
+                        game_state.add_score(10)
+
                     bullet.kill()
 
         # go through and draw all elements

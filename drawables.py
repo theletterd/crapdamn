@@ -363,3 +363,44 @@ class CurseBullet(Bullet):
     def is_live(self):
         # check to see if we fly off the bottom of the screen, then remove
         return self.y <= (constants.HEIGHT - 2) and (not self.is_killed)
+
+
+class StatusBar(Drawable):
+
+    base_color = colors.WHITE | curses.A_BOLD
+
+    def __init__(self, game_state):
+        # status bar is in a fixed position always
+        self._y = 1
+        self._x = 1
+        self.game_state = game_state
+
+    @property
+    def width(self):
+        return constants.WIDTH - 2
+
+    @property
+    def height(self):
+        return constants.HEIGHT - 2
+
+
+    def draw(self, stdscr):
+        score = str(self.game_state.score).rjust(8, '0') # gamestatus.score
+        lives = self.game_state.remaining_lives
+        message = self.game_state.message
+
+        max_line_length = constants.WIDTH - 2
+        line_start = "LIVES: {lives} ".format(lives=lives)
+        line_middle = message
+        line_end = " {score}".format(score=score)
+
+        remaining_space = max_line_length - len(line_start) - len(line_end) - len(line_middle)
+        padding = " " * (remaining_space / 2)
+        line_middle = padding + line_middle + padding
+        if remaining_space % 2:
+            line_middle += " "
+
+        line = line_start + line_middle + line_end
+
+        #line = "LIVES: {lives}         {message}             {score}".format(score=score, lives=lives, message=message)
+        stdscr.addstr(self.y, self.x, line, self.base_color)
